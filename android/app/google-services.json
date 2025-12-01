@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "639487181344",
+    "project_id": "kinedemo",
+    "storage_bucket": "kinedemo.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:639487181344:android:5b971b62aff7d1b67e7245",
+        "android_client_info": {
+          "package_name": "com.example.kinedemo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD-_0QkJ3VfH3esvvDhCOSJN6gKe5kqsjQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

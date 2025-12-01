@@ -11,20 +11,27 @@ class ExerciseListScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final languageProvider = Provider.of<LanguageProvider>(context);
 
-    return Scaffold(
-      backgroundColor: AppTheme.darkBg,
-      appBar: AppBar(
-        backgroundColor: AppTheme.cardBg,
-        leading: GestureDetector(
-          onTap: () => context.pop(),
-          child: const Icon(Icons.arrow_back, color: AppTheme.textWhite),
+    return Container(
+      color: AppTheme.darkBg,
+      child: Column(
+        children: [
+        Container(
+          color: AppTheme.cardBg,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          child: SafeArea(
+            bottom: false,
+            child: Text(
+              languageProvider.t('exercises'),
+              style: const TextStyle(
+                color: AppTheme.textWhite,
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
         ),
-        title: Text(
-          languageProvider.t('exercises'),
-          style: const TextStyle(color: AppTheme.textWhite),
-        ),
-      ),
-      body: ListView.builder(
+        Expanded(
+          child: ListView.builder(
         padding: const EdgeInsets.all(16),
         itemCount: 10,
         itemBuilder: (context, index) {
@@ -81,6 +88,9 @@ class ExerciseListScreen extends StatelessWidget {
             ),
           );
         },
+          ),
+        ),
+        ],
       ),
     );
   }

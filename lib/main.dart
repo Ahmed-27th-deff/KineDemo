@@ -1,25 +1,35 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:kinedemo/providers/language_provider.dart';
 import 'package:kinedemo/theme/app_theme.dart';
 import 'package:kinedemo/screens/splash_screen.dart';
 import 'package:kinedemo/screens/login_screen.dart';
 import 'package:kinedemo/screens/signup_screen.dart';
 import 'package:kinedemo/screens/onboarding_screen.dart';
-import 'package:kinedemo/screens/dashboard_screen.dart';
-import 'package:kinedemo/screens/exercise_list_screen.dart';
+import 'package:kinedemo/screens/main_navigation_screen.dart';
 import 'package:kinedemo/screens/exercise_detail_screen.dart';
 import 'package:kinedemo/screens/exercise_tracking_screen.dart';
-import 'package:kinedemo/screens/ai_coach_screen.dart';
-import 'package:kinedemo/screens/nutrition_screen.dart';
-import 'package:kinedemo/screens/progress_screen.dart';
 import 'package:kinedemo/screens/settings_screen.dart';
+import 'package:kinedemo/repositories/auth_repository.dart';
+import 'package:kinedemo/cubits/auth/auth_cubit.dart';
+import 'package:kinedemo/cubits/auth/auth_state.dart';
+import 'package:kinedemo/firebase_options.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  
   runApp(
     MultiProvider(
-      providers: [ChangeNotifierProvider(create: (_) => LanguageProvider())],
+      providers: [
+        ChangeNotifierProvider(create: (_) => LanguageProvider()),
+        Provider(create: (_) => AuthRepository()),
+      ],
       child: const MyApp(),
     ),
   );
@@ -30,23 +40,44 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<LanguageProvider>(
-      builder: (context, languageProvider, _) {
-        return MaterialApp.router(
-          title: 'AI Fitness Coach',
-          theme: AppTheme.lightTheme(),
-          debugShowCheckedModeBanner: false,
-          locale: Locale(languageProvider.language),
-          supportedLocales: const [Locale('en'), Locale('ar')],
-          routerConfig: _buildRouter(),
-        );
-      },
+    return BlocProvider(
+      create: (context) => AuthCubit(
+        authRepository: context.read<AuthRepository>(),
+      ),
+      child: Consumer<LanguageProvider>(
+        builder: (context, languageProvider, _) {
+          return MaterialApp.router(
+            title: 'AI Fitness Coach',
+            theme: AppTheme.lightTheme(),
+            debugShowCheckedModeBanner: false,
+            locale: Locale(languageProvider.language),
+            supportedLocales: const [Locale('en'), Locale('ar')],
+            routerConfig: _buildRouter(context),
+          );
+        },
+      ),
     );
   }
 
-  GoRouter _buildRouter() {
+  GoRouter _buildRouter(BuildContext context) {
     return GoRouter(
       initialLocation: '/splash',
+      redirect: (context, state) {
+        final authState = context.read<AuthCubit>().state;
+        final isAuthenticated = authState is AuthAuthenticated;
+        final isGoingToAuth = state.matchedLocation == '/login' ||
+            state.matchedLocation == '/signup' ||
+            state.matchedLocation == '/splash' ||
+            state.matchedLocation == '/onboarding';
+
+        if (!isAuthenticated && !isGoingToAuth) {
+          return '/login';
+        }
+        if (isAuthenticated && isGoingToAuth && state.matchedLocation != '/splash') {
+          return '/dashboard';
+        }
+        return null;
+      },
       routes: [
         GoRoute(
           path: '/splash',
@@ -66,11 +97,7 @@ class MyApp extends StatelessWidget {
         ),
         GoRoute(
           path: '/dashboard',
-          builder: (context, state) => const DashboardScreen(),
-        ),
-        GoRoute(
-          path: '/exercises',
-          builder: (context, state) => const ExerciseListScreen(),
+          builder: (context, state) => const MainNavigationScreen(),
         ),
         GoRoute(
           path: '/exercise-detail',
@@ -79,18 +106,6 @@ class MyApp extends StatelessWidget {
         GoRoute(
           path: '/exercise-tracking',
           builder: (context, state) => const ExerciseTrackingScreen(),
-        ),
-        GoRoute(
-          path: '/ai-coach',
-          builder: (context, state) => const AICoachScreen(),
-        ),
-        GoRoute(
-          path: '/nutrition',
-          builder: (context, state) => const NutritionScreen(),
-        ),
-        GoRoute(
-          path: '/progress',
-          builder: (context, state) => const ProgressScreen(),
         ),
         GoRoute(
           path: '/settings',

@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:kinedemo/providers/language_provider.dart';
 import 'package:kinedemo/theme/app_theme.dart';
+import 'package:kinedemo/cubits/auth/auth_cubit.dart';
+import 'package:kinedemo/cubits/auth/auth_state.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({Key? key}) : super(key: key);
@@ -12,6 +15,7 @@ class SignUpScreen extends StatefulWidget {
 }
 
 class _SignUpScreenState extends State<SignUpScreen> {
+  final _formKey = GlobalKey<FormState>();
   final fullNameController = TextEditingController();
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
@@ -29,11 +33,45 @@ class _SignUpScreenState extends State<SignUpScreen> {
     super.dispose();
   }
 
+  void _handleSignUp() {
+    if (_formKey.currentState!.validate()) {
+      if (selectedGender == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please select your gender'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      context.read<AuthCubit>().signUp(
+            email: emailController.text.trim(),
+            password: passwordController.text,
+            fullName: fullNameController.text.trim(),
+            gender: selectedGender!,
+          );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final languageProvider = Provider.of<LanguageProvider>(context);
 
-    return Scaffold(
+    return BlocListener<AuthCubit, AuthState>(
+      listener: (context, state) {
+        if (state is AuthError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.message),
+              backgroundColor: Colors.red,
+            ),
+          );
+        } else if (state is AuthAuthenticated) {
+          context.go('/onboarding');
+        }
+      },
+      child: Scaffold(
       backgroundColor: AppTheme.darkBg,
       body: Stack(
         children: [
@@ -64,8 +102,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
           SingleChildScrollView(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
-                children: [
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  children: [
                   Padding(
                     padding: const EdgeInsets.only(top: 24, bottom: 32),
                     child: Row(
@@ -186,33 +226,44 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   const SizedBox(height: 20),
                   _buildGenderSelector(languageProvider),
                   const SizedBox(height: 32),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 56,
-                    child: ElevatedButton(
-                      onPressed: selectedGender != null
-                          ? () {
-                              context.go('/onboarding');
-                            }
-                          : null,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.cyanLight,
-                        foregroundColor: AppTheme.darkBg,
-                        disabledBackgroundColor: AppTheme.cyanLight.withOpacity(
-                          0.5,
+                  BlocBuilder<AuthCubit, AuthState>(
+                    builder: (context, state) {
+                      final isLoading = state is AuthLoading;
+                      return SizedBox(
+                        width: double.infinity,
+                        height: 56,
+                        child: ElevatedButton(
+                          onPressed: isLoading ? null : _handleSignUp,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.cyanLight,
+                            foregroundColor: AppTheme.darkBg,
+                            disabledBackgroundColor:
+                                AppTheme.cyanLight.withOpacity(0.5),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                          child: isLoading
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation(
+                                      AppTheme.darkBg,
+                                    ),
+                                  ),
+                                )
+                              : Text(
+                                  languageProvider.t('createAccount'),
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
                         ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                      child: Text(
-                        languageProvider.t('createAccount'),
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
+                      );
+                    },
                   ),
                   const SizedBox(height: 24),
                   GestureDetector(
@@ -229,11 +280,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     ),
                   ),
                   const SizedBox(height: 40),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
         ],
+      ),
       ),
     );
   }
@@ -258,10 +311,20 @@ class _SignUpScreenState extends State<SignUpScreen> {
           ),
         ),
         const SizedBox(height: 12),
-        TextField(
+        TextFormField(
           controller: controller,
           style: const TextStyle(color: AppTheme.textWhite),
           keyboardType: keyboardType,
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'This field is required';
+            }
+            if (keyboardType == TextInputType.emailAddress &&
+                !value.contains('@')) {
+              return 'Please enter a valid email';
+            }
+            return null;
+          },
           decoration: InputDecoration(
             prefixIcon: Icon(icon, color: AppTheme.textLight),
             hintText: hintText,
@@ -309,10 +372,23 @@ class _SignUpScreenState extends State<SignUpScreen> {
           ),
         ),
         const SizedBox(height: 12),
-        TextField(
+        TextFormField(
           controller: controller,
           style: const TextStyle(color: AppTheme.textWhite),
           obscureText: obscure,
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Password is required';
+            }
+            if (value.length < 6) {
+              return 'Password must be at least 6 characters';
+            }
+            if (label.contains('Confirm') &&
+                value != passwordController.text) {
+              return 'Passwords do not match';
+            }
+            return null;
+          },
           decoration: InputDecoration(
             prefixIcon: const Icon(
               Icons.lock_outline,

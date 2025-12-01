@@ -28,6 +28,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       'calories': 320,
       'progress': 75,
       'icon': Icons.fitness_center,
+      'image': 'assets/images/full_body_blast.png',
     },
     {
       'name': 'Chest & Triceps',
@@ -35,6 +36,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       'calories': 280,
       'progress': 60,
       'icon': Icons.directions_run,
+      'image': 'assets/images/chest.png',
     },
     {
       'name': 'Cardio HIIT',
@@ -42,6 +44,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       'calories': 400,
       'progress': 85,
       'icon': Icons.favorite,
+      'image': 'assets/images/cardio_HIIT.png',
     },
   ];
 
@@ -50,9 +53,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final languageProvider = Provider.of<LanguageProvider>(context);
     final isRTL = languageProvider.isRTL;
 
-    return Scaffold(
-      backgroundColor: AppTheme.darkBg,
-      body: SingleChildScrollView(
+    return Container(
+      color: AppTheme.darkBg,
+      child: SingleChildScrollView(
         child: Column(
           children: [
             // Hero Section
@@ -61,9 +64,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               decoration: BoxDecoration(
                 color: AppTheme.cardBg,
                 image: DecorationImage(
-                  image: const NetworkImage(
-                    'https://images.unsplash.com/photo-1628935291759-bbaf33a66dc6?w=500&h=500&fit=crop',
-                  ),
+                  image: const AssetImage('assets/images/main.png'),
                   fit: BoxFit.cover,
                   onError: (_, __) {},
                 ),
@@ -85,7 +86,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                   // Header
                   Positioned(
-                    top: 16,
+                    top: 36,
                     left: isRTL ? null : 16,
                     right: isRTL ? 16 : null,
                     child: Container(
@@ -112,9 +113,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                   // Settings Button
                   Positioned(
-                    top: 16,
-                    right: isRTL ? 16 : null,
-                    left: isRTL ? null : 16,
+                    top: 36,
+                    right: isRTL ? null : 16, //isRTL ? 16 : null
+                    left: isRTL ? 16 : null, //isRTL ? null : 16
                     child: GestureDetector(
                       onTap: () => context.go('/settings'),
                       child: Container(
@@ -303,8 +304,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               Container(
                                 decoration: BoxDecoration(
                                   image: DecorationImage(
-                                    image: const NetworkImage(
-                                      'https://images.unsplash.com/photo-1634788699201-77bbb9428ab6?w=500&h=500&fit=crop',
+                                    image: AssetImage(
+                                      program['image'] ?? 'assets/images/main.png',
                                     ),
                                     fit: BoxFit.cover,
                                     onError: (_, __) {},
@@ -413,37 +414,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 }).toList(),
               ),
             ),
-            const SizedBox(height: 24),
-            // Bottom Navigation Hints
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _buildNavHint(
-                    Icons.fitness_center,
-                    'Exercises',
-                    () => context.go('/exercises'),
-                  ),
-                  _buildNavHint(
-                    Icons.apple,
-                    'Nutrition',
-                    () => context.go('/nutrition'),
-                  ),
-                  _buildNavHint(
-                    Icons.trending_up,
-                    'Progress',
-                    () => context.go('/progress'),
-                  ),
-                  _buildNavHint(
-                    Icons.message,
-                    'AI Coach',
-                    () => context.go('/ai-coach'),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 80),
           ],
         ),
       ),
@@ -472,30 +443,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Text(
             label,
             style: const TextStyle(color: AppTheme.textLight, fontSize: 11),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNavHint(IconData icon, String label, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        children: [
-          Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              color: AppTheme.cyanLight.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, color: AppTheme.cyanLight, size: 24),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            style: const TextStyle(color: AppTheme.textLight, fontSize: 12),
           ),
         ],
       ),

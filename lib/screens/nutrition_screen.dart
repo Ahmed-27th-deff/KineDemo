@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:kinedemo/providers/language_provider.dart';
 import 'package:kinedemo/theme/app_theme.dart';
@@ -11,24 +10,31 @@ class NutritionScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final languageProvider = Provider.of<LanguageProvider>(context);
 
-    return Scaffold(
-      backgroundColor: AppTheme.darkBg,
-      appBar: AppBar(
-        backgroundColor: AppTheme.cardBg,
-        leading: GestureDetector(
-          onTap: () => context.pop(),
-          child: const Icon(Icons.arrow_back, color: AppTheme.textWhite),
+    return Container(
+      color: AppTheme.darkBg,
+      child: Column(
+        children: [
+        Container(
+          color: AppTheme.cardBg,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          child: SafeArea(
+            bottom: false,
+            child: Text(
+              languageProvider.t('nutrition'),
+              style: const TextStyle(
+                color: AppTheme.textWhite,
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
         ),
-        title: Text(
-          languageProvider.t('nutrition'),
-          style: const TextStyle(color: AppTheme.textWhite),
-        ),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
             _buildMealSection(languageProvider.t('breakfast'), [
               'Oatmeal with berries',
               'Protein shake',
@@ -48,8 +54,12 @@ class NutritionScreen extends StatelessWidget {
             ], 600),
             const SizedBox(height: 32),
             _buildMacros(),
-          ],
+            const SizedBox(height: 80),
+              ],
+            ),
+          ),
         ),
+        ],
       ),
     );
   }
