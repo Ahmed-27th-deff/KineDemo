@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:kinedemo/providers/language_provider.dart';
+import 'package:kinedemo/cubits/auth/auth_cubit.dart';
+import 'package:kinedemo/theme/app_theme.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({Key? key}) : super(key: key);
@@ -32,60 +35,60 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Widget build(BuildContext context) {
     final languageProvider = Provider.of<LanguageProvider>(context);
 
-    return WillPopScope(
-      onWillPop: () async {
-        if (_currentStep > 1) {
+    return PopScope(
+      canPop: _currentStep <= 1,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop && _currentStep > 1) {
           setState(() => _currentStep--);
-          return false;
         }
-        return true;
       },
       child: Scaffold(
-        backgroundColor: Colors.white,
-        body: SingleChildScrollView(
+        backgroundColor: AppTheme.darkBg,
+        body: SafeArea(
           child: Column(
             children: [
               // Progress Bar
               Padding(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.all(20.0),
                 child: Column(
                   children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: LinearProgressIndicator(
-                        value: _currentStep / 5,
-                        minHeight: 8,
-                        backgroundColor: Colors.grey[200],
-                        valueColor: const AlwaysStoppedAnimation(
-                          Color(0xFF0066FF),
-                        ),
-                      ),
+                    Row(
+                      children: List.generate(5, (index) {
+                        return Expanded(
+                          child: Container(
+                            height: 4,
+                            margin: EdgeInsets.only(right: index < 4 ? 8 : 0),
+                            decoration: BoxDecoration(
+                              color: index < _currentStep
+                                  ? AppTheme.cyanLight
+                                  : Colors.grey.shade800,
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                        );
+                      }),
                     ),
                     const SizedBox(height: 16),
                     Text(
                       'Step $_currentStep of 5',
-                      style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                      style: const TextStyle(
+                        color: Colors.grey,
+                        fontSize: 14,
+                      ),
                     ),
                   ],
                 ),
               ),
-              // Step Content
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  children: [
-                    if (_currentStep == 1) _buildStep1(languageProvider),
-                    if (_currentStep == 2) _buildStep2(languageProvider),
-                    if (_currentStep == 3) _buildStep3(languageProvider),
-                    if (_currentStep == 4) _buildStep4(languageProvider),
-                    if (_currentStep == 5) _buildStep5(languageProvider),
-                  ],
+              // Content
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20.0),
+                  child: _buildStepContent(languageProvider),
                 ),
               ),
-              const SizedBox(height: 32),
               // Navigation Buttons
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
+                padding: const EdgeInsets.all(20.0),
                 child: Row(
                   children: [
                     if (_currentStep > 1)
@@ -95,50 +98,39 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             setState(() => _currentStep--);
                           },
                           style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            foregroundColor: AppTheme.cyanLight,
+                            side: BorderSide(color: AppTheme.cyanLight),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            side: const BorderSide(
-                              color: Colors.grey,
-                              width: 1,
-                            ),
                           ),
                           child: Text(
-                            languageProvider.t('skip'),
-                            style: const TextStyle(
-                              color: Colors.black,
-                              fontWeight: FontWeight.w600,
-                            ),
+                            languageProvider.t('back'),
+                            style: const TextStyle(fontSize: 16),
                           ),
                         ),
                       ),
-                    if (_currentStep > 1) const SizedBox(width: 12),
+                    if (_currentStep > 1) const SizedBox(width: 16),
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: _canProceed()
-                            ? () {
-                                if (_currentStep < 5) {
-                                  setState(() => _currentStep++);
-                                } else {
-                                  context.go('/dashboard');
-                                }
-                              }
-                            : null,
+                        onPressed: _canProceed() ? _handleNext : null,
                         style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          backgroundColor: const Color(0xFF0066FF),
+                          backgroundColor: AppTheme.cyanLight,
+                          foregroundColor: Colors.black,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
+                          disabledBackgroundColor: Colors.grey.shade800,
                         ),
                         child: Text(
                           _currentStep == 5
-                              ? languageProvider.t('startPlan')
+                              ? languageProvider.t('complete')
                               : languageProvider.t('next'),
                           style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
@@ -146,7 +138,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 32),
             ],
           ),
         ),
@@ -154,305 +145,270 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
   }
 
-  Widget _buildStep1(LanguageProvider provider) {
+  Widget _buildStepContent(LanguageProvider languageProvider) {
+    switch (_currentStep) {
+      case 1:
+        return _buildPhysicalStatsStep(languageProvider);
+      case 2:
+        return _buildGenderStep(languageProvider);
+      case 3:
+        return _buildGoalStep(languageProvider);
+      case 4:
+        return _buildActivityLevelStep(languageProvider);
+      case 5:
+        return _buildEquipmentStep(languageProvider);
+      default:
+        return Container();
+    }
+  }
+
+  Widget _buildPhysicalStatsStep(LanguageProvider languageProvider) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: 80,
-          height: 80,
-          decoration: BoxDecoration(
-            color: const Color(0xFF0066FF).withOpacity(0.1),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: const Icon(
-            Icons.straighten,
-            color: Color(0xFF0066FF),
-            size: 40,
-          ),
-        ),
-        const SizedBox(height: 24),
         Text(
-          provider.t('physicalStats'),
+          languageProvider.t('physicalStats'),
           style: const TextStyle(
-            color: Color(0xFF0066FF),
-            fontSize: 20,
+            color: Colors.white,
+            fontSize: 24,
             fontWeight: FontWeight.bold,
           ),
         ),
         const SizedBox(height: 8),
-        Text(provider.t('helpUs'), style: TextStyle(color: Colors.grey[600])),
-        const SizedBox(height: 32),
-        _buildSlider(
-          provider.t('height'),
-          _height,
-          100,
-          220,
-          '${_height.toInt()} ${provider.t('cm')}',
-          (value) {
-            setState(() => _height = value);
-          },
-        ),
-        const SizedBox(height: 32),
-        _buildSlider(
-          provider.t('weight'),
-          _weight,
-          30,
-          200,
-          '${_weight.toInt()} ${provider.t('kg')}',
-          (value) {
-            setState(() => _weight = value);
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStep2(LanguageProvider provider) {
-    return Column(
-      children: [
-        Container(
-          width: 80,
-          height: 80,
-          decoration: BoxDecoration(
-            color: const Color(0xFF0066FF).withOpacity(0.1),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: const Icon(Icons.person, color: Color(0xFF0066FF), size: 40),
-        ),
-        const SizedBox(height: 24),
         Text(
-          provider.t('gender'),
-          style: const TextStyle(
-            color: Color(0xFF0066FF),
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
+          languageProvider.t('physicalStatsDesc'),
+          style: TextStyle(
+            color: Colors.grey.shade400,
+            fontSize: 14,
           ),
         ),
-        const SizedBox(height: 32),
-        Row(
-          children: [
-            Expanded(
-              child: _buildSelectionCard(
-                provider.t('male'),
-                _selectedGender == 'male',
-                () => setState(() => _selectedGender = 'male'),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: _buildSelectionCard(
-                provider.t('female'),
-                _selectedGender == 'female',
-                () => setState(() => _selectedGender = 'female'),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStep3(LanguageProvider provider) {
-    return Column(
-      children: [
-        Container(
-          width: 80,
-          height: 80,
-          decoration: BoxDecoration(
-            color: const Color(0xFF0066FF).withOpacity(0.1),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: const Icon(
-            Icons.track_changes,
-            color: Color(0xFF0066FF),
-            size: 40,
-          ),
-        ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 40),
+        // Height Slider
         Text(
-          provider.t('selectGoal'),
+          '${languageProvider.t('height')}: ${_height.toInt()} cm',
           style: const TextStyle(
-            color: Color(0xFF0066FF),
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
+            color: Colors.white,
+            fontSize: 16,
+          ),
+        ),
+        const SizedBox(height: 16),
+        SliderTheme(
+          data: SliderThemeData(
+            activeTrackColor: AppTheme.cyanLight,
+            inactiveTrackColor: Colors.grey.shade800,
+            thumbColor: AppTheme.cyanLight,
+            overlayColor: AppTheme.cyanLight.withValues(alpha: 0.2),
+          ),
+          child: Slider(
+            value: _height,
+            min: 120,
+            max: 220,
+            onChanged: (value) {
+              setState(() => _height = value);
+            },
           ),
         ),
         const SizedBox(height: 32),
-        Column(
-          children: goals.map((goal) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: _buildSelectionCard(
-                provider.t(goal),
-                _selectedGoal == goal,
-                () => setState(() => _selectedGoal = goal),
-                fullWidth: true,
-              ),
-            );
-          }).toList(),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStep4(LanguageProvider provider) {
-    return Column(
-      children: [
-        Container(
-          width: 80,
-          height: 80,
-          decoration: BoxDecoration(
-            color: const Color(0xFF0066FF).withOpacity(0.1),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: const Icon(
-            Icons.fitness_center,
-            color: Color(0xFF0066FF),
-            size: 40,
-          ),
-        ),
-        const SizedBox(height: 24),
+        // Weight Slider
         Text(
-          provider.t('activityLevel'),
+          '${languageProvider.t('weight')}: ${_weight.toInt()} kg',
           style: const TextStyle(
-            color: Color(0xFF0066FF),
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
+            color: Colors.white,
+            fontSize: 16,
           ),
         ),
-        const SizedBox(height: 32),
-        Column(
-          children: activityLevels.map((level) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: _buildSelectionCard(
-                provider.t(level),
-                _selectedActivityLevel == level,
-                () => setState(() => _selectedActivityLevel = level),
-                fullWidth: true,
-              ),
-            );
-          }).toList(),
+        const SizedBox(height: 16),
+        SliderTheme(
+          data: SliderThemeData(
+            activeTrackColor: AppTheme.cyanLight,
+            inactiveTrackColor: Colors.grey.shade800,
+            thumbColor: AppTheme.cyanLight,
+            overlayColor: AppTheme.cyanLight.withValues(alpha: 0.2),
+          ),
+          child: Slider(
+            value: _weight,
+            min: 40,
+            max: 150,
+            onChanged: (value) {
+              setState(() => _weight = value);
+            },
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildStep5(LanguageProvider provider) {
-    return Column(
-      children: [
-        Container(
-          width: 80,
-          height: 80,
-          decoration: BoxDecoration(
-            color: const Color(0xFF0066FF).withOpacity(0.1),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: const Icon(Icons.home, color: Color(0xFF0066FF), size: 40),
-        ),
-        const SizedBox(height: 24),
-        Text(
-          provider.t('equipment'),
-          style: const TextStyle(
-            color: Color(0xFF0066FF),
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 32),
-        Row(
-          children: [
-            Expanded(
-              child: _buildSelectionCard(
-                provider.t('home'),
-                _selectedEquipment == 'home',
-                () => setState(() => _selectedEquipment = 'home'),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: _buildSelectionCard(
-                provider.t('gym'),
-                _selectedEquipment == 'gym',
-                () => setState(() => _selectedEquipment = 'gym'),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSlider(
-    String label,
-    double value,
-    double min,
-    double max,
-    String displayValue,
-    ValueChanged<double> onChanged,
-  ) {
+  Widget _buildGenderStep(LanguageProvider languageProvider) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              label,
-              style: const TextStyle(
-                color: Colors.black87,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            Text(
-              displayValue,
-              style: const TextStyle(
-                color: Color(0xFF0066FF),
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
+        Text(
+          languageProvider.t('selectGender'),
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          languageProvider.t('selectGenderDesc'),
+          style: TextStyle(
+            color: Colors.grey.shade400,
+            fontSize: 14,
+          ),
+        ),
+        const SizedBox(height: 40),
+        _buildOptionButton(
+          'male',
+          languageProvider.t('male'),
+          _selectedGender == 'male',
+          () => setState(() => _selectedGender = 'male'),
         ),
         const SizedBox(height: 16),
-        Slider(
-          value: value,
-          min: min,
-          max: max,
-          activeColor: const Color(0xFF0066FF),
-          inactiveColor: Colors.grey[300],
-          onChanged: onChanged,
+        _buildOptionButton(
+          'female',
+          languageProvider.t('female'),
+          _selectedGender == 'female',
+          () => setState(() => _selectedGender = 'female'),
         ),
       ],
     );
   }
 
-  Widget _buildSelectionCard(
+  Widget _buildGoalStep(LanguageProvider languageProvider) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          languageProvider.t('fitnessGoal'),
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          languageProvider.t('fitnessGoalDesc'),
+          style: TextStyle(
+            color: Colors.grey.shade400,
+            fontSize: 14,
+          ),
+        ),
+        const SizedBox(height: 40),
+        ...goals.map((goal) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: _buildOptionButton(
+              goal,
+              languageProvider.t(goal),
+              _selectedGoal == goal,
+              () => setState(() => _selectedGoal = goal),
+            ),
+          );
+        }).toList(),
+      ],
+    );
+  }
+
+  Widget _buildActivityLevelStep(LanguageProvider languageProvider) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          languageProvider.t('activityLevel'),
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          languageProvider.t('activityLevelDesc'),
+          style: TextStyle(
+            color: Colors.grey.shade400,
+            fontSize: 14,
+          ),
+        ),
+        const SizedBox(height: 40),
+        ...activityLevels.map((level) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: _buildOptionButton(
+              level,
+              languageProvider.t(level),
+              _selectedActivityLevel == level,
+              () => setState(() => _selectedActivityLevel = level),
+            ),
+          );
+        }).toList(),
+      ],
+    );
+  }
+
+  Widget _buildEquipmentStep(LanguageProvider languageProvider) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          languageProvider.t('equipment'),
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          languageProvider.t('equipmentDesc'),
+          style: TextStyle(
+            color: Colors.grey.shade400,
+            fontSize: 14,
+          ),
+        ),
+        const SizedBox(height: 40),
+        ...equipment.map((equip) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: _buildOptionButton(
+              equip,
+              languageProvider.t(equip),
+              _selectedEquipment == equip,
+              () => setState(() => _selectedEquipment = equip),
+            ),
+          );
+        }).toList(),
+      ],
+    );
+  }
+
+  Widget _buildOptionButton(
+    String value,
     String label,
     bool isSelected,
-    VoidCallback onTap, {
-    bool fullWidth = false,
-  }) {
-    return GestureDetector(
+    VoidCallback onTap,
+  ) {
+    return InkWell(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16),
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF0066FF) : Colors.white,
+          color: isSelected ? AppTheme.cyanLight.withValues(alpha: 0.1) : Colors.grey.shade900,
           border: Border.all(
-            color: isSelected ? const Color(0xFF0066FF) : Colors.grey[300]!,
+            color: isSelected ? AppTheme.cyanLight : Colors.grey.shade800,
             width: 2,
           ),
           borderRadius: BorderRadius.circular(12),
         ),
-        child: Center(
-          child: Text(
-            label,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: isSelected ? Colors.white : Colors.black87,
-              fontWeight: FontWeight.w600,
-              fontSize: 16,
-            ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? AppTheme.cyanLight : Colors.white,
+            fontSize: 16,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
           ),
         ),
       ),
@@ -462,7 +418,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   bool _canProceed() {
     switch (_currentStep) {
       case 1:
-        return true;
+        return true; // Height and weight always have values
       case 2:
         return _selectedGender != null;
       case 3:
@@ -473,6 +429,23 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         return _selectedEquipment != null;
       default:
         return false;
+    }
+  }
+
+  void _handleNext() {
+    if (_currentStep < 5) {
+      setState(() => _currentStep++);
+    } else {
+      // Complete onboarding
+      context.read<AuthCubit>().completeOnboarding(
+            height: _height,
+            weight: _weight,
+            gender: _selectedGender!,
+            goal: _selectedGoal!,
+            activityLevel: _selectedActivityLevel!,
+            equipment: _selectedEquipment!,
+          );
+      context.go('/dashboard');
     }
   }
 }

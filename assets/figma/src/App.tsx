@@ -50,7 +50,11 @@ export default function App() {
     <LanguageProvider>
       <div className="w-full min-h-screen bg-white">
         {currentScreen === 'splash' && (
-          <SplashScreen onComplete={() => setCurrentScreen('login')} />
+          <SplashScreen onComplete={() => setCurrentScreen('onboarding')} />
+        )}
+
+        {currentScreen === 'onboarding' && (
+          <OnboardingScreens onComplete={() => setCurrentScreen('login')} />
         )}
 
         {currentScreen === 'login' && (
@@ -62,13 +66,9 @@ export default function App() {
 
         {currentScreen === 'signup' && (
           <SignUpScreen
-            onSignUp={() => setCurrentScreen('onboarding')}
+            onSignUp={() => setCurrentScreen('dashboard')}
             onBack={() => setCurrentScreen('login')}
           />
-        )}
-
-        {currentScreen === 'onboarding' && (
-          <OnboardingScreens onComplete={() => setCurrentScreen('dashboard')} />
         )}
 
         {currentScreen === 'dashboard' && (

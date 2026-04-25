@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:kinedemo/providers/language_provider.dart';
 import 'package:kinedemo/theme/app_theme.dart';
+import 'package:kinedemo/cubits/auth/auth_cubit.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({Key? key}) : super(key: key);
@@ -98,8 +100,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Padding(
             padding: const EdgeInsets.all(16),
             child: ElevatedButton(
-              onPressed: () {
-                context.go('/login');
+              onPressed: () async {
+                await context.read<AuthCubit>().signOut();
+                if (context.mounted) {
+                  context.go('/login');
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red.withOpacity(0.2),

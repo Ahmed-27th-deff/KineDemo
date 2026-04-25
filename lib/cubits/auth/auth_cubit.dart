@@ -35,7 +35,6 @@ class AuthCubit extends Cubit<AuthState> {
     required String email,
     required String password,
     required String fullName,
-    required String gender,
   }) async {
     try {
       emit(AuthLoading());
@@ -44,12 +43,11 @@ class AuthCubit extends Cubit<AuthState> {
         email: email,
         password: password,
         fullName: fullName,
-        gender: gender,
       );
       
       emit(AuthAuthenticated(user));
     } catch (e) {
-      emit(AuthError(e.toString()));
+      emit(AuthError(e.toString().replaceAll('Exception: ', '')));
       emit(AuthUnauthenticated());
     }
   }
@@ -69,7 +67,7 @@ class AuthCubit extends Cubit<AuthState> {
       
       emit(AuthAuthenticated(user));
     } catch (e) {
-      emit(AuthError(e.toString()));
+      emit(AuthError(e.toString().replaceAll('Exception: ', '')));
       emit(AuthUnauthenticated());
     }
   }
@@ -81,7 +79,45 @@ class AuthCubit extends Cubit<AuthState> {
       await _authRepository.signOut();
       emit(AuthUnauthenticated());
     } catch (e) {
-      emit(AuthError(e.toString()));
+      emit(AuthError(e.toString().replaceAll('Exception: ', '')));
+    }
+  }
+
+  // Complete onboarding
+  Future<void> completeOnboarding({
+    required double height,
+    required double weight,
+    required String gender,
+    required String goal,
+    required String activityLevel,
+    required String equipment,
+  }) async {
+    try {
+      final currentState = state;
+      if (currentState is AuthAuthenticated) {
+        emit(AuthLoading());
+        final updatedUser = await _authRepository.completeOnboarding(
+          uid: currentState.user.uid,
+          height: height,
+          weight: weight,
+          gender: gender,
+          goal: goal,
+          activityLevel: activityLevel,
+          equipment: equipment,
+        );
+        emit(AuthAuthenticated(updatedUser));
+      }
+    } catch (e) {
+      emit(AuthError(e.toString().replaceAll('Exception: ', '')));
+    }
+  }
+
+  // Forgot password
+  Future<void> forgotPassword(String email) async {
+    try {
+      await _authRepository.sendPasswordResetEmail(email);
+    } catch (e) {
+      throw Exception(e.toString().replaceAll('Exception: ', ''));
     }
   }
 }

@@ -23,7 +23,6 @@ class AuthRepository {
     required String email,
     required String password,
     required String fullName,
-    required String gender,
   }) async {
     try {
       // Create user in Firebase Auth
@@ -42,7 +41,6 @@ class AuthRepository {
         uid: user.uid,
         email: email,
         fullName: fullName,
-        gender: gender,
         createdAt: DateTime.now(),
       );
 
@@ -112,6 +110,49 @@ class AuthRepository {
       return UserModel.fromJson(userDoc.data()!);
     } catch (e) {
       throw Exception('Failed to get user data: ${e.toString()}');
+    }
+  }
+
+  // Complete onboarding
+  Future<UserModel> completeOnboarding({
+    required String uid,
+    required double height,
+    required double weight,
+    required String gender,
+    required String goal,
+    required String activityLevel,
+    required String equipment,
+  }) async {
+    try {
+      await _firestore.collection('users').doc(uid).update({
+        'hasCompletedOnboarding': true,
+        'height': height,
+        'weight': weight,
+        'gender': gender,
+        'goal': goal,
+        'activityLevel': activityLevel,
+        'equipment': equipment,
+      });
+
+      final userDoc = await _firestore.collection('users').doc(uid).get();
+      if (!userDoc.exists) {
+        throw Exception('User data not found');
+      }
+
+      return UserModel.fromJson(userDoc.data()!);
+    } catch (e) {
+      throw Exception('Failed to complete onboarding: ${e.toString()}');
+    }
+  }
+
+  // Send password reset email
+  Future<void> sendPasswordResetEmail(String email) async {
+    try {
+      await _firebaseAuth.sendPasswordResetEmail(email: email);
+    } on FirebaseAuthException catch (e) {
+      throw _handleAuthException(e);
+    } catch (e) {
+      throw Exception('An unexpected error occurred: ${e.toString()}');
     }
   }
 

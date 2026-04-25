@@ -12,7 +12,12 @@
           "package_name": "com.example.kinedemo"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "639487181344-j86lh1mj179ahgido35tkm7p3ki199t7.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyD-_0QkJ3VfH3esvvDhCOSJN6gKe5kqsjQ"
@@ -20,7 +25,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "639487181344-j86lh1mj179ahgido35tkm7p3ki199t7.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "639487181344-38a9lqr7d6j5dimbehmv5vkv3fmqgb95.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.kinedemo"
+              }
+            }
+          ]
         }
       }
     }

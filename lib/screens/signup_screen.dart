@@ -6,6 +6,9 @@ import 'package:kinedemo/providers/language_provider.dart';
 import 'package:kinedemo/theme/app_theme.dart';
 import 'package:kinedemo/cubits/auth/auth_cubit.dart';
 import 'package:kinedemo/cubits/auth/auth_state.dart';
+import 'package:kinedemo/widgets/auth_background.dart';
+import 'package:kinedemo/widgets/auth_header.dart';
+import 'package:kinedemo/widgets/custom_text_field.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({Key? key}) : super(key: key);
@@ -20,7 +23,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
   final confirmPasswordController = TextEditingController();
-  String? selectedGender;
+  
+  final FocusNode _fullNameFocus = FocusNode();
+  final FocusNode _emailFocus = FocusNode();
+  final FocusNode _passwordFocus = FocusNode();
+  final FocusNode _confirmPasswordFocus = FocusNode();
+
+
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
 
@@ -30,26 +39,20 @@ class _SignUpScreenState extends State<SignUpScreen> {
     emailController.dispose();
     passwordController.dispose();
     confirmPasswordController.dispose();
+    _fullNameFocus.dispose();
+    _emailFocus.dispose();
+    _passwordFocus.dispose();
+    _confirmPasswordFocus.dispose();
     super.dispose();
   }
 
   void _handleSignUp() {
+    FocusScope.of(context).unfocus();
     if (_formKey.currentState!.validate()) {
-      if (selectedGender == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Please select your gender'),
-            backgroundColor: Colors.red,
-          ),
-        );
-        return;
-      }
-
       context.read<AuthCubit>().signUp(
             email: emailController.text.trim(),
             password: passwordController.text,
             fullName: fullNameController.text.trim(),
-            gender: selectedGender!,
           );
     }
   }
@@ -57,13 +60,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
   @override
   Widget build(BuildContext context) {
     final languageProvider = Provider.of<LanguageProvider>(context);
+    final isRTL = languageProvider.isRTL;
 
     return BlocListener<AuthCubit, AuthState>(
       listener: (context, state) {
         if (state is AuthError) {
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(state.message),
+              content: Text(state.message.replaceAll('Exception: ', '')),
               backgroundColor: Colors.red,
             ),
           );
@@ -72,446 +77,214 @@ class _SignUpScreenState extends State<SignUpScreen> {
         }
       },
       child: Scaffold(
-      backgroundColor: AppTheme.darkBg,
-      body: Stack(
-        children: [
-          Positioned(
-            top: 0,
-            left: 0,
-            child: Container(
-              width: 384,
-              height: 384,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppTheme.cyanLight.withOpacity(0.1),
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: 0,
-            right: 0,
-            child: Container(
-              width: 384,
-              height: 384,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppTheme.blueDark.withOpacity(0.1),
-              ),
-            ),
-          ),
-          SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  children: [
-                  Padding(
-                    padding: const EdgeInsets.only(top: 24, bottom: 32),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        backgroundColor: AppTheme.darkBg,
+        body: GestureDetector(
+          onTap: () => FocusScope.of(context).unfocus(),
+          child: AuthBackground(
+            child: SafeArea(
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
                       children: [
-                        Text(
-                          languageProvider.t('appName'),
-                          style: const TextStyle(
-                            color: AppTheme.cyanLight,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        GestureDetector(
-                          onTap: () {
-                            languageProvider.setLanguage(
-                              languageProvider.language == 'en' ? 'ar' : 'en',
-                            );
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: AppTheme.cyanLight.withOpacity(0.3),
+                        const AuthHeader(),
+                        Column(
+                          children: [
+                            Text(
+                              languageProvider.t('startYourJourney'),
+                              style: const TextStyle(
+                                color: AppTheme.textWhite,
+                                fontSize: 32,
+                                fontWeight: FontWeight.bold,
                               ),
+                              textAlign: TextAlign.center,
                             ),
-                            child: Row(
-                              children: [
-                                const Icon(
-                                  Icons.language,
-                                  color: AppTheme.textLight,
-                                  size: 18,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  languageProvider.language == 'en'
-                                      ? 'ع'
-                                      : 'EN',
-                                  style: const TextStyle(
-                                    color: AppTheme.textLight,
-                                    fontSize: 12,
+                            const SizedBox(height: 12),
+                            Text(
+                              languageProvider.t('transformYourBody'),
+                              style: const TextStyle(
+                                color: AppTheme.textLight,
+                                fontSize: 16,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 32),
+                        CustomTextField(
+                          label: languageProvider.t('fullName'),
+                          controller: fullNameController,
+                          prefixIcon: Icons.person_outline,
+                          hintText: 'John Doe',
+                          focusNode: _fullNameFocus,
+                          textInputAction: TextInputAction.next,
+                          onFieldSubmitted: (_) {
+                            FocusScope.of(context).requestFocus(_emailFocus);
+                          },
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return isRTL ? 'هذا الحقل مطلوب' : 'This field is required';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 20),
+                        CustomTextField(
+                          label: languageProvider.t('email'),
+                          controller: emailController,
+                          prefixIcon: Icons.mail_outline,
+                          hintText: 'example@email.com',
+                          keyboardType: TextInputType.emailAddress,
+                          focusNode: _emailFocus,
+                          textInputAction: TextInputAction.next,
+                          onFieldSubmitted: (_) {
+                            FocusScope.of(context).requestFocus(_passwordFocus);
+                          },
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return isRTL ? 'هذا الحقل مطلوب' : 'This field is required';
+                            }
+                            if (!value.contains('@')) {
+                              return isRTL ? 'الرجاء إدخال بريد إلكتروني صحيح' : 'Please enter a valid email';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 20),
+                        CustomTextField(
+                          label: languageProvider.t('password'),
+                          controller: passwordController,
+                          prefixIcon: Icons.lock_outline,
+                          hintText: '••••••••',
+                          obscureText: _obscurePassword,
+                          focusNode: _passwordFocus,
+                          textInputAction: TextInputAction.next,
+                          onFieldSubmitted: (_) {
+                            FocusScope.of(context).requestFocus(_confirmPasswordFocus);
+                          },
+                          onVisibilityToggle: () {
+                            setState(() {
+                              _obscurePassword = !_obscurePassword;
+                            });
+                          },
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return isRTL ? 'كلمة المرور مطلوبة' : 'Password is required';
+                            }
+                            if (value.length < 8) {
+                              return isRTL ? 'كلمة المرور يجب أن تكون 8 أحرف على الأقل' : 'Password must be at least 8 characters';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 20),
+                        CustomTextField(
+                          label: languageProvider.t('confirmPassword'),
+                          controller: confirmPasswordController,
+                          prefixIcon: Icons.lock_outline,
+                          hintText: '••••••••',
+                          obscureText: _obscureConfirmPassword,
+                          focusNode: _confirmPasswordFocus,
+                          textInputAction: TextInputAction.done,
+                          onFieldSubmitted: (_) {
+                            FocusScope.of(context).unfocus();
+                          },
+                          onVisibilityToggle: () {
+                            setState(() {
+                              _obscureConfirmPassword = !_obscureConfirmPassword;
+                            });
+                          },
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return isRTL ? 'تأكيد كلمة المرور مطلوب' : 'Confirm password is required';
+                            }
+                            if (value != passwordController.text) {
+                              return isRTL ? 'كلمات المرور غير متطابقة' : 'Passwords do not match';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 20),
+
+                        const SizedBox(height: 32),
+                        BlocBuilder<AuthCubit, AuthState>(
+                          builder: (context, state) {
+                            final isLoading = state is AuthLoading;
+                            return SizedBox(
+                              width: double.infinity,
+                              height: 56,
+                              child: ElevatedButton(
+                                onPressed: isLoading ? null : _handleSignUp,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppTheme.cyanLight,
+                                  foregroundColor: AppTheme.darkBg,
+                                  disabledBackgroundColor:
+                                      AppTheme.cyanLight.withValues(alpha: 0.5),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
                                   ),
                                 ),
-                              ],
-                            ),
-                          ),
+                                child: isLoading
+                                    ? const SizedBox(
+                                        height: 20,
+                                        width: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor: AlwaysStoppedAnimation(
+                                            AppTheme.darkBg,
+                                          ),
+                                        ),
+                                      )
+                                    : Text(
+                                        languageProvider.t('createAccount'),
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                              ),
+                            );
+                          },
                         ),
+                        const SizedBox(height: 24),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              isRTL ? "لديك حساب بالفعل؟ " : "Already have an account? ",
+                              style: const TextStyle(
+                                color: AppTheme.textLight,
+                                fontSize: 14,
+                              ),
+                            ),
+                            GestureDetector(
+                              onTap: () {
+                                context.go('/login');
+                              },
+                              child: Text(
+                                languageProvider.t('login'),
+                                style: const TextStyle(
+                                  color: AppTheme.cyanLight,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 40),
                       ],
                     ),
                   ),
-                  Column(
-                    children: [
-                      Text(
-                        languageProvider.t('startYourJourney'),
-                        style: const TextStyle(
-                          color: AppTheme.textWhite,
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        languageProvider.t('transformYourBody'),
-                        style: const TextStyle(
-                          color: AppTheme.textLight,
-                          fontSize: 16,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 32),
-                  _buildTextInputField(
-                    languageProvider,
-                    label: languageProvider.t('fullName'),
-                    controller: fullNameController,
-                    icon: Icons.person_outline,
-                    hintText: 'John Doe',
-                  ),
-                  const SizedBox(height: 20),
-                  _buildTextInputField(
-                    languageProvider,
-                    label: languageProvider.t('email'),
-                    controller: emailController,
-                    icon: Icons.mail_outline,
-                    hintText: 'example@email.com',
-                    keyboardType: TextInputType.emailAddress,
-                  ),
-                  const SizedBox(height: 20),
-                  _buildPasswordField(
-                    languageProvider,
-                    label: languageProvider.t('password'),
-                    controller: passwordController,
-                    obscure: _obscurePassword,
-                    onVisibilityToggle: () {
-                      setState(() {
-                        _obscurePassword = !_obscurePassword;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 20),
-                  _buildPasswordField(
-                    languageProvider,
-                    label: languageProvider.t('confirmPassword'),
-                    controller: confirmPasswordController,
-                    obscure: _obscureConfirmPassword,
-                    onVisibilityToggle: () {
-                      setState(() {
-                        _obscureConfirmPassword = !_obscureConfirmPassword;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 20),
-                  _buildGenderSelector(languageProvider),
-                  const SizedBox(height: 32),
-                  BlocBuilder<AuthCubit, AuthState>(
-                    builder: (context, state) {
-                      final isLoading = state is AuthLoading;
-                      return SizedBox(
-                        width: double.infinity,
-                        height: 56,
-                        child: ElevatedButton(
-                          onPressed: isLoading ? null : _handleSignUp,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.cyanLight,
-                            foregroundColor: AppTheme.darkBg,
-                            disabledBackgroundColor:
-                                AppTheme.cyanLight.withOpacity(0.5),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                          ),
-                          child: isLoading
-                              ? const SizedBox(
-                                  height: 20,
-                                  width: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation(
-                                      AppTheme.darkBg,
-                                    ),
-                                  ),
-                                )
-                              : Text(
-                                  languageProvider.t('createAccount'),
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                        ),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 24),
-                  GestureDetector(
-                    onTap: () {
-                      context.go('/login');
-                    },
-                    child: Text(
-                      languageProvider.t('login'),
-                      style: const TextStyle(
-                        color: AppTheme.cyanLight,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 40),
-                  ],
                 ),
               ),
             ),
           ),
-        ],
-      ),
+        ),
       ),
     );
   }
 
-  Widget _buildTextInputField(
-    LanguageProvider provider, {
-    required String label,
-    required TextEditingController controller,
-    required IconData icon,
-    required String hintText,
-    TextInputType keyboardType = TextInputType.text,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: Color(0xFFE5E5E5),
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        const SizedBox(height: 12),
-        TextFormField(
-          controller: controller,
-          style: const TextStyle(color: AppTheme.textWhite),
-          keyboardType: keyboardType,
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'This field is required';
-            }
-            if (keyboardType == TextInputType.emailAddress &&
-                !value.contains('@')) {
-              return 'Please enter a valid email';
-            }
-            return null;
-          },
-          decoration: InputDecoration(
-            prefixIcon: Icon(icon, color: AppTheme.textLight),
-            hintText: hintText,
-            hintStyle: const TextStyle(color: AppTheme.textLight),
-            filled: true,
-            fillColor: AppTheme.cardBg,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: AppTheme.borderColor),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: AppTheme.borderColor),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: AppTheme.cyanLight, width: 2),
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 14,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPasswordField(
-    LanguageProvider provider, {
-    required String label,
-    required TextEditingController controller,
-    required bool obscure,
-    required VoidCallback onVisibilityToggle,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: Color(0xFFE5E5E5),
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        const SizedBox(height: 12),
-        TextFormField(
-          controller: controller,
-          style: const TextStyle(color: AppTheme.textWhite),
-          obscureText: obscure,
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Password is required';
-            }
-            if (value.length < 6) {
-              return 'Password must be at least 6 characters';
-            }
-            if (label.contains('Confirm') &&
-                value != passwordController.text) {
-              return 'Passwords do not match';
-            }
-            return null;
-          },
-          decoration: InputDecoration(
-            prefixIcon: const Icon(
-              Icons.lock_outline,
-              color: AppTheme.textLight,
-            ),
-            suffixIcon: GestureDetector(
-              onTap: onVisibilityToggle,
-              child: Icon(
-                obscure ? Icons.visibility_off : Icons.visibility,
-                color: AppTheme.textLight,
-              ),
-            ),
-            hintText: '••••••••',
-            hintStyle: const TextStyle(color: AppTheme.textLight),
-            filled: true,
-            fillColor: AppTheme.cardBg,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: AppTheme.borderColor),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: AppTheme.borderColor),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: AppTheme.cyanLight, width: 2),
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 14,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildGenderSelector(LanguageProvider provider) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          provider.t('gender'),
-          style: const TextStyle(
-            color: Color(0xFFE5E5E5),
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: GestureDetector(
-                onTap: () {
-                  setState(() {
-                    selectedGender = 'male';
-                  });
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  decoration: BoxDecoration(
-                    color: selectedGender == 'male'
-                        ? AppTheme.cyanLight
-                        : AppTheme.cardBg,
-                    border: Border.all(
-                      color: selectedGender == 'male'
-                          ? AppTheme.cyanLight
-                          : AppTheme.borderColor,
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    provider.t('male'),
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: selectedGender == 'male'
-                          ? AppTheme.darkBg
-                          : AppTheme.textLight,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: GestureDetector(
-                onTap: () {
-                  setState(() {
-                    selectedGender = 'female';
-                  });
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  decoration: BoxDecoration(
-                    color: selectedGender == 'female'
-                        ? AppTheme.cyanLight
-                        : AppTheme.cardBg,
-                    border: Border.all(
-                      color: selectedGender == 'female'
-                          ? AppTheme.cyanLight
-                          : AppTheme.borderColor,
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    provider.t('female'),
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: selectedGender == 'female'
-                          ? AppTheme.darkBg
-                          : AppTheme.textLight,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
 }
